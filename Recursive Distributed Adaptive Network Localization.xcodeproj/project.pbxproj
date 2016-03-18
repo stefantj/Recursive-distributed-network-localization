@@ -7,8 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1F6A21521C9B2C2B004C4371 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F6A21511C9B2C2B004C4371 /* main.cpp */; };
 		1F6A21541C9B2C2B004C4371 /* Recursive_Distributed_Adaptive_Network_Localization.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1F6A21531C9B2C2B004C4371 /* Recursive_Distributed_Adaptive_Network_Localization.1 */; };
+		1F6A215D1C9B2DEA004C4371 /* coord.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F6A215B1C9B2DEA004C4371 /* coord.cpp */; };
+		1F6A21621C9B2E19004C4371 /* simulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F6A215E1C9B2E19004C4371 /* simulator.cpp */; };
+		1F6A21631C9B2E19004C4371 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F6A21611C9B2E19004C4371 /* main.cpp */; };
+		1F6A21651C9B2E27004C4371 /* Node.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1F6A21641C9B2E27004C4371 /* Node.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,8 +29,15 @@
 
 /* Begin PBXFileReference section */
 		1F6A214E1C9B2C2B004C4371 /* Recursive Distributed Adaptive Network Localization */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Recursive Distributed Adaptive Network Localization"; sourceTree = BUILT_PRODUCTS_DIR; };
-		1F6A21511C9B2C2B004C4371 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		1F6A21531C9B2C2B004C4371 /* Recursive_Distributed_Adaptive_Network_Localization.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = Recursive_Distributed_Adaptive_Network_Localization.1; sourceTree = "<group>"; };
+		1F6A215A1C9B2DEA004C4371 /* Node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Node.h; sourceTree = "<group>"; };
+		1F6A215B1C9B2DEA004C4371 /* coord.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coord.cpp; sourceTree = "<group>"; };
+		1F6A215C1C9B2DEA004C4371 /* coord.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coord.h; sourceTree = "<group>"; };
+		1F6A215E1C9B2E19004C4371 /* simulator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = simulator.cpp; path = ../simulator.cpp; sourceTree = "<group>"; };
+		1F6A215F1C9B2E19004C4371 /* simulator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = simulator.h; path = ../simulator.h; sourceTree = "<group>"; };
+		1F6A21601C9B2E19004C4371 /* Globals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Globals.h; path = ../Globals.h; sourceTree = "<group>"; };
+		1F6A21611C9B2E19004C4371 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main.cpp; path = ../main.cpp; sourceTree = "<group>"; };
+		1F6A21641C9B2E27004C4371 /* Node.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Node.cpp; path = ../Node.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,7 +70,14 @@
 		1F6A21501C9B2C2B004C4371 /* Recursive Distributed Adaptive Network Localization */ = {
 			isa = PBXGroup;
 			children = (
-				1F6A21511C9B2C2B004C4371 /* main.cpp */,
+				1F6A21641C9B2E27004C4371 /* Node.cpp */,
+				1F6A215E1C9B2E19004C4371 /* simulator.cpp */,
+				1F6A215F1C9B2E19004C4371 /* simulator.h */,
+				1F6A21601C9B2E19004C4371 /* Globals.h */,
+				1F6A21611C9B2E19004C4371 /* main.cpp */,
+				1F6A215A1C9B2DEA004C4371 /* Node.h */,
+				1F6A215B1C9B2DEA004C4371 /* coord.cpp */,
+				1F6A215C1C9B2DEA004C4371 /* coord.h */,
 				1F6A21531C9B2C2B004C4371 /* Recursive_Distributed_Adaptive_Network_Localization.1 */,
 			);
 			path = "Recursive Distributed Adaptive Network Localization";
@@ -117,7 +134,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1F6A21521C9B2C2B004C4371 /* main.cpp in Sources */,
+				1F6A21621C9B2E19004C4371 /* simulator.cpp in Sources */,
+				1F6A215D1C9B2DEA004C4371 /* coord.cpp in Sources */,
+				1F6A21631C9B2E19004C4371 /* main.cpp in Sources */,
+				1F6A21651C9B2E27004C4371 /* Node.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,6 +217,12 @@
 		1F6A21581C9B2C2B004C4371 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib;
+				"OTHER_LDFLAGS[arch=*]" = (
+					"-Wl",
+					/usr/local/lib/libgslcblas.a,
+					/usr/local/lib/libgsl.a,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -204,6 +230,12 @@
 		1F6A21591C9B2C2B004C4371 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib;
+				"OTHER_LDFLAGS[arch=*]" = (
+					"-Wl",
+					/usr/local/lib/libgslcblas.a,
+					/usr/local/libgsl.a,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -227,6 +259,7 @@
 				1F6A21591C9B2C2B004C4371 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
