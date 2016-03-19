@@ -12,8 +12,8 @@
 #define _PARAMETERS_H__
 
 //Default parameter values: 
-#define NETWORK_SIZE 50
-#define ARENA_SIZE_DEFAULT 10
+#define NETWORK_SIZE 20
+#define ARENA_SIZE_DEFAULT 30
 
 //Standard deviation index values
 #define SDEV_R 0  //Variance of R meaeasurements
@@ -22,7 +22,7 @@
 
 //Adaption parameters
 //Step Size:
-#define MU_PARAM 1.7
+#define MU_PARAM 1.0
 
 //Simulation type
 #define BERNOULLI 0

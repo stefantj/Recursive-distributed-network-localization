@@ -28,6 +28,13 @@ Node::Node(int n_index) : self_index(n_index)
 	pos = rand() % (Sim.getArenaHeight()*10);
 	w_0[Y] = pos/10;
 
+    //Simple test: Start near center and pointing at each other.
+//    w_0[X] = Sim.getArenaWidth()/2+(1-2*n_index);
+//    w_0[Y] = Sim.getArenaHeight()/2+5*(1-2*n_index);
+    
+//    vel[X] = 0;
+//    vel[Y] = (1-2*n_index);
+    
 	//assign random velocity in +-[5, 15] m/s
 //	float sx = 1 - 2*(rand()%2);
 //	float sy = 1 - 2*(rand()%2);
@@ -158,11 +165,8 @@ int Node::calc_psi()
         // y_jk[l][j] is the vector of histories of node l's measurement of node j.
         //shift history - we always do this whether or not there are measurements available.
         for(int l = 1; l <= NETWORK_SIZE; l++){
-            for(int jj = RECURSIVE_HIST-1; jj >0; jj--){
+            for(int jj = RECURSIVE_HIST-1; jj >0; jj--)
                 y_jk[l][j][jj] = y_jk[l][j][jj-1];
-                if(isnan(y_jk[l][j][jj]))
-                    printf("y-estimate went nan");
-            }
             // Fill in current value as zero in case no measurements.
             y_jk[l][j][0] = 0;
         }
@@ -185,8 +189,11 @@ int Node::calc_psi()
                 
                 //compute current y
                 y_jk[ll][j][0] = coord_mult(u, w_jk[j]);
+                if(isnan(y_jk[ll][j][0]))
+                    printf("Neighbor's data is nan");
+                
                 for(int jj = 0; jj < RECURSIVE_HIST-1; jj++)
-                    y_jk[ll][j][0] += (y_jk[ll][j][jj+1])*(wf_jk[j][jj]);
+                    y_jk[ll][j][0] += (y_jk[ll][j][jj+1])*(wf_jk[j][jj+1]);
                 if(isnan(y_jk[ll][j][0]))
                     printf("y-estimate went nan");
                 
@@ -225,7 +232,7 @@ int Node::calc_psi()
 		if(c_j)
 		{
             // Optional: normalize step size? Might help with stability
-            
+            mu_j[j] = .5;
 			if(j == self_index)
 				M = c_j;
 			NM_k[j] = true;
@@ -236,7 +243,7 @@ int Node::calc_psi()
             
 #ifdef USE_RECURSIVE_LMS
             for(int jj = 0; jj<RECURSIVE_HIST; jj++)
-                pf_jk[j][jj] =  wf_jk[j][jj] + 0.001*(mu_j[j]/(float)c_j)*psi_f[jj];
+                pf_jk[j][jj] =  wf_jk[j][jj] + 0.1*(mu_j[j]/(float)c_j)*psi_f[jj];
 #endif
 		} else{
 			NM_k[j] = false;
@@ -253,6 +260,10 @@ void Node::calc_w()
 		float a_j = 0;
 		coord p; 
 		coord w = {0,0};
+#ifdef USE_RECURSIVE_LMS
+        float pf[RECURSIVE_HIST]={};
+        float wf[RECURSIVE_HIST]={};
+#endif
 		int N_s = NEIGHBORS[self_index][0];
 		for(int l = 1; l <= N_s; l++)
 		{
@@ -262,6 +273,14 @@ void Node::calc_w()
 				a_j++;
 				coord_add(w, p, w);
 			}
+#ifdef USE_RECURSIVE_LMS
+            if(NODES[ll]->get_psif(j,pf))
+            {
+                for(int jj= 0; jj < RECURSIVE_HIST; jj++)
+                    wf[jj]+=pf[jj];
+            }
+            
+#endif
 		}
 		if(a_j)
 		{
@@ -269,29 +288,26 @@ void Node::calc_w()
 			w_jk[j][X] = w[X];
 			w_jk[j][Y] = w[Y];
 #ifdef USE_RECURSIVE_LMS
-            //should add in the full distributed setting at some point
-            float w_sum = 0;
+            //Normalize wf for stabilitiy?
+            float wsum = 0;
+            for(int jj=0; jj < RECURSIVE_HIST; jj++)
+                wsum+=wf[jj];
+            
             for(int jj = 0; jj < RECURSIVE_HIST; jj++){
                 if(isnan(wf_jk[j][jj])){
                    printf("Recursive filter for node %d diverged.\n",self_index);
                     exit(1);
-                    wf_jk[j][jj]=0;
                 }else{
-                    //normalize wf so it doesn't cause issues?
-                    wf_jk[j][jj] = pf_jk[j][jj];
-                    w_sum += wf_jk[j][jj];
-                }
-            }
-            
-            if(!isnan(w_sum) && (w_sum > 1 || w_sum < -1) )
-            {
-                for(int jj = 0; jj < RECURSIVE_HIST; jj++){
-                    wf_jk[j][jj]/=w_sum;
+                    wf_jk[j][jj] = wf[jj]/a_j;
+                    if(wsum > 1 || wsum < -1)
+                        wf_jk[j][jj] /= wsum;
                 }
             }
 #endif
             
-		}
+		}else{
+            printf("No data!\n");
+        }
 	}
     
 }
@@ -327,6 +343,19 @@ bool Node::get_psi(int l, coord p)
 		return true;
 	}else{return false;}
 }
+
+
+#ifdef USE_RECURSIVE_LMS
+bool Node::get_psif(int l, float* pf)
+{
+	if(NM_k[l])
+	{
+        for(int jj = 0; jj < RECURSIVE_HIST; jj++)
+            pf[jj] = pf_jk[l][jj];
+		return true;
+	}else{return false;}
+}
+#endif
 
 float Node::get_w_jk(int j, int dim)
 {
@@ -381,8 +410,10 @@ void Node::update_position(float arena_x, float arena_y)
     float dt = 0.1; //units seconds
     float mag = 0;
     float mass = 10; // "mass" in f = m*a
-    coord force = {0,0}; //"force" from potential field
+    coord force = {}; //"force" from potential field
 
+
+    
     for(int l = 1; l < NETWORK_SIZE; l++)
     {
         if(l != self_index){
@@ -400,6 +431,13 @@ void Node::update_position(float arena_x, float arena_y)
         coord_scale((force_mult)/F_tot, force);
     }
 
+    //force points to center:
+    force[X] = Sim.getArenaWidth()/2;
+    force[Y] = Sim.getArenaHeight()/2;
+    coord_diff(w_0, force, force);
+    coord_scale(-5*sqrtf(coord_mult(force, force)), force);
+    
+    
     // Move - bounce if hits wall
 
     /* Marble model - go straight until collision with wall */
@@ -410,8 +448,8 @@ void Node::update_position(float arena_x, float arena_y)
      vel[X] += dt*force[X]/mass;
      vel[Y] += dt*force[Y]/mass;
     float velocity = sqrt(vel[X]*vel[X] + vel[Y]+vel[Y]);
-    if(velocity > Sim.getArenaHeight()){
-        coord_scale(5/velocity, vel);
+    if(velocity > 4){
+        coord_scale(4/velocity, vel);
     }
     
      if(!tmp[X] && !tmp[Y]) return; //don't bother computing if vel == {0,0}

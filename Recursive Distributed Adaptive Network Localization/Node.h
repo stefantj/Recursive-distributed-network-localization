@@ -14,10 +14,10 @@
 #include "Globals.h" //contains system parameters
 #include "coord.h" //contains coord class
 
-#define USE_RECURSIVE_LMS
+//#define USE_RECURSIVE_LMS
 
 #ifdef USE_RECURSIVE_LMS
-#define RECURSIVE_HIST 5
+#define RECURSIVE_HIST 15
 #endif
 //extern Node* NODES[NETWORK_SIZE]; //global network list
 class Simulator;
@@ -124,6 +124,12 @@ public:
 	//intermediate estimate data getter:
 	//returns false if j not in NM_k
 	bool get_psi(int l, coord p);
+    
+#ifdef USE_RECURSIVE_LMS
+    //feedback intermediate estimate data getter:
+    //returns false if j not in NM_k
+    bool get_psif(int l, float* pf);
+#endif
 	
 	//get_w_jk(j,dim)
 	// return w_jk[j][dim];
