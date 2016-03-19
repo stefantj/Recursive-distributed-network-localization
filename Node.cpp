@@ -52,12 +52,15 @@ Node::Node(int n_index) : self_index(n_index)
 		p_jk[j][Y] = 0;
 		w_jk[j][X] = 0;
 		w_jk[j][Y] = 0;
-#ifdef USE_RECURSIVE_LMS
         e_jk[j] = 0;
-        wf_jk[j][X] = 0;
-        wf_jk[j][Y] = 0;
-        y_jk[j][0]  = 0;
-        y_jk[j][1]  = 0;
+#ifdef USE_RECURSIVE_LMS
+        ef_jk[j] = 0;
+        for(int jj = 0; jj < RECURSIVE_HIST; jj++){
+            wf_jk[j][jj] = 0;
+            pf_jk[j][jj] = 0;
+            for(int l = 0; l < NETWORK_SIZE; l++)
+                y_jk[j][l][jj]  = 0;
+        }
 #endif
 	}
 }
@@ -77,14 +80,17 @@ void Node::initialize(void)
 		p_jk[j][Y] = 0;
 		w_jk[j][X] = 0;
 		w_jk[j][Y] = 0;
-#ifdef USE_RECURSIVE_LMS
         e_jk[j] = 0;
-        wf_jk[j][X] = 0;
-        wf_jk[j][Y] = 0;
-        y_jk[j][0]  = 0;
-        y_jk[j][1]  = 0;
+#ifdef USE_RECURSIVE_LMS
+        ef_jk[j] = 0;
+        for(int jj = 0; jj < RECURSIVE_HIST; jj++){
+            wf_jk[j][jj] = 0;
+            pf_jk[j][jj] = 0;
+            for(int l = 0; l < NETWORK_SIZE; l++)
+                y_jk[j][l][jj]  = 0;
+        }
 #endif
-	}
+    }
 
 	if(!Sim.get_meas(self_index, self_index, NULL, w_jk[self_index]))
 		printf("Error measuring self (NODE %d) \n", self_index);
@@ -137,49 +143,89 @@ int Node::measure()
 int Node::calc_psi()
 {
 	int M = 0;
+    // Update estimator for each node in the network:
 	for(int j = 0; j < NETWORK_SIZE; j++)
 	{
 		int c_j =0;
-		float d, err, y;
-		coord u; 
+		float d = 0;
+		coord u = {0,0};
 		coord psi = {0,0};
-#ifdef USE_RECURSIVE_LMS
-        coord psif = {0,0};
-#endif
 		int N_s = NEIGHBORS[self_index][0];
+        
+#ifdef USE_RECURSIVE_LMS
+        float psi_f[RECURSIVE_HIST] = {};
+        
+        // y_jk[l][j] is the vector of histories of node l's measurement of node j.
+        //shift history - we always do this whether or not there are measurements available.
+        for(int l = 1; l <= NETWORK_SIZE; l++){
+            for(int jj = RECURSIVE_HIST-1; jj >0; jj--){
+                y_jk[l][j][jj] = y_jk[l][j][jj-1];
+                if(isnan(y_jk[l][j][jj]))
+                    printf("y-estimate went nan");
+            }
+            // Fill in current value as zero in case no measurements.
+            y_jk[l][j][0] = 0;
+        }
+#endif
+        
+        //Query Neighbors for measurements:
 		//if you can talk to them
 		for(int l = 1; l <= N_s; l++)
 		{
 			int ll = NEIGHBORS[self_index][l];
-			//if they have measurements
+			//if they have measurements of node j
 			if(NODES[ll]->get_du(j, &d, u))
 			{
 				c_j++;
-
+                
 #ifdef USE_RECURSIVE_LMS
                 
-                
                 // Adaptive recursive case: y = a'x + b'y (x = u, a = w, b = w_f)
-                y = coord_mult(u, w_jk[j]) + coord_mult(y_jk[j], wf_jk[j]);
-                //shift history:
-                y_jk[j][1] = y_jk[j][0];
-                y_jk[j][0] = y;
-                e_jk[j] = d - y;
+                // error_l(j) = d_l(j) - u_l(j)'w(j) - y_l(j)'w_f(j)
                 
-                coord_add(psif, u, psif);
+                //compute current y
+                y_jk[ll][j][0] = coord_mult(u, w_jk[j]);
+                for(int jj = 0; jj < RECURSIVE_HIST-1; jj++)
+                    y_jk[ll][j][0] += (y_jk[ll][j][jj+1])*(wf_jk[j][jj]);
+                if(isnan(y_jk[ll][j][0]))
+                    printf("y-estimate went nan");
+                
+                // Compute Y'W_f for error term
+                float ysum = 0;
+                for(int jj = 0; jj < RECURSIVE_HIST-1; jj++)
+                    ysum += wf_jk[j][jj]*y_jk[ll][j][jj];
+                if(isnan(ysum))
+                    printf("ysum went nan");
+                
+                //Compute error
+                 ef_jk[j] = d - ysum - coord_mult(u, w_jk[j]);
+                
+                //Compute intermediate feed-back weight vector
+                for(int jj=0; jj < RECURSIVE_HIST; jj++){
+                    psi_f[jj] += ef_jk[j]*y_jk[ll][j][jj];
+                    if(isnan(psi_f[jj]))
+                        printf("psi_f went nan");
+                }
+                
+                //Compute intermediate feed-forward weight vector
+				coord_scale(ef_jk[j], u);
+				coord_add(psi, u, psi);
+
                 // Likely need some sanity checking here...
 #else
-                // Standard case:
-                y = coord_mult(u, w_jk[j]);
-#endif
-				err = (d - y);
-				coord_scale(err, u);
+                // Sum for standard case:
+                float e_i = d - coord_mult(u,w_jk[j]);
+				coord_scale(e_i, u);
 				coord_add(psi, u, psi);
+#endif
 			}
 		}
 		
+        //Scale and add offset
 		if(c_j)
 		{
+            // Optional: normalize step size? Might help with stability
+            
 			if(j == self_index)
 				M = c_j;
 			NM_k[j] = true;
@@ -187,9 +233,10 @@ int Node::calc_psi()
 			coord_add(w_jk[j], psi, psi);
 			p_jk[j][X] = psi[X];
 			p_jk[j][Y] = psi[Y];
+            
 #ifdef USE_RECURSIVE_LMS
-            pf_jk[j][X] = psif[X];
-            pf_jk[j][Y] = psif[Y];
+            for(int jj = 0; jj<RECURSIVE_HIST; jj++)
+                pf_jk[j][jj] =  wf_jk[j][jj] + 0.001*(mu_j[j]/(float)c_j)*psi_f[jj];
 #endif
 		} else{
 			NM_k[j] = false;
@@ -223,14 +270,25 @@ void Node::calc_w()
 			w_jk[j][Y] = w[Y];
 #ifdef USE_RECURSIVE_LMS
             //should add in the full distributed setting at some point
-            wf_jk[j][0] = 0.0002*e_jk[j]*y_jk[j][1];
-            wf_jk[j][1] = -wf_jk[j][0];
-            if(isnan(wf_jk[j][0]) || isnan(wf_jk[j][1])){
-               printf("Recursive filter for node %d diverged.\n",self_index);
-                wf_jk[j][0]=0;
-                wf_jk[j][1]=0;
+            float w_sum = 0;
+            for(int jj = 0; jj < RECURSIVE_HIST; jj++){
+                if(isnan(wf_jk[j][jj])){
+                   printf("Recursive filter for node %d diverged.\n",self_index);
+                    exit(1);
+                    wf_jk[j][jj]=0;
+                }else{
+                    //normalize wf so it doesn't cause issues?
+                    wf_jk[j][jj] = pf_jk[j][jj];
+                    w_sum += wf_jk[j][jj];
+                }
             }
             
+            if(!isnan(w_sum) && (w_sum > 1 || w_sum < -1) )
+            {
+                for(int jj = 0; jj < RECURSIVE_HIST; jj++){
+                    wf_jk[j][jj]/=w_sum;
+                }
+            }
 #endif
             
 		}
@@ -305,6 +363,14 @@ void Node::randomize_position()
 	w_0[X] = pos/10;
 	pos = rand() % (Sim.getArenaHeight()*10);
 	w_0[Y] = pos/10;	
+}
+
+float Node::get_error_est(){
+    float error = 0;
+    int N_s = NEIGHBORS[self_index][0];
+    for(int l = 1; l <= N_s; l++)
+        error+=e_jk[NEIGHBORS[self_index][l]]*e_jk[NEIGHBORS[self_index][l]];
+    return error/N_s;
 }
 
 void Node::update_position(float arena_x, float arena_y)

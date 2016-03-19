@@ -30,7 +30,8 @@ Simulator::Simulator()
 {
     // Initialize random number generator
     RNG = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(RNG, static_cast<unsigned int>(time(0)));
+//    gsl_rng_set(RNG, static_cast<unsigned int>(time(0)));
+    gsl_rng_set(RNG, static_cast<unsigned int>(0));
     
 	//Load Default simulator values:
 	for(int j = 0; j < ITER_MAX; j++)
@@ -59,7 +60,9 @@ Simulator::Simulator()
     firstWrite = true;
     
 	//Initialize simulator:
-	srand(static_cast<unsigned int>(time(0)));
+//	srand(static_cast<unsigned int>(time(0)));
+    srand(static_cast<unsigned int>(0));
+
 	
 	printf("Initializing simulation...\n");
 	
@@ -286,12 +289,13 @@ void Simulator::run_sim(int simtype, const char* prefix)
 			update_neighbors();
 			for(int j = 0; j < NETWORK_SIZE; j++)
 				NODES[j]->calc_w();
+            
 			//Typically this is run with 1 realization, so OK to save here.
 			//if too slow, save to array and then print array to file outside loop
 			save_scene(prefix, W_0_FILE); //Save true locations
 			save_scene(prefix, W_K_FILE); //Save node 0's estimates
             save_julia_data(I == (ITER_MAX - 1));
-			printf("%f, (%f,%f)\n",Mbar/50, NODES[0]->get_w_0(X), NODES[0]->get_w_0(Y));
+			printf("%f, (%f,%f)\n",get_NETMSE()*LOOPS*ILOOPS, NODES[0]->get_w_0(X), NODES[0]->get_w_0(Y));
 			Mbar= 0;
 			NET_MSE[I] += get_NETMSE();
             if(I != 0) firstWrite = false;
@@ -562,18 +566,20 @@ void Simulator::save_scene(const char* prefix, int file_index)
 
 // Function to save data in an ascii format for julia to parse
 void Simulator::save_julia_data(bool close){
-
     char* writeType = "a";
     if(firstWrite)
     writeType = "w";
+    FILE* msefile_handle = fopen("mse.jl", writeType);
+    
     FILE* xfile_handle = fopen("data_x.jl",writeType);
     FILE* yfile_handle = fopen("data_y.jl",writeType);
     if(firstWrite){
         fprintf(xfile_handle, "x_pos = [");
         fprintf(yfile_handle, "y_pos = [");
+        fprintf(msefile_handle, "mse = [");
     }
  
-    
+    fprintf(msefile_handle, "%f ", get_NETMSE()*LOOPS*ILOOPS);
     for( int i = 0; i < NETWORK_SIZE-1; i++){
         fprintf(xfile_handle, "%f ", NODES[i]->get_w_0(X));
         fprintf(yfile_handle, "%f ", NODES[i]->get_w_0(Y));
@@ -581,12 +587,16 @@ void Simulator::save_julia_data(bool close){
 
     // print last line
     if(close){
+        fprintf(msefile_handle, "]");
         fprintf(xfile_handle, "%f]", NODES[NETWORK_SIZE-1]->get_w_0(X));
         fprintf(yfile_handle, "%f]", NODES[NETWORK_SIZE-1]->get_w_0(Y));
     } else{
+        fprintf(msefile_handle, ",");
         fprintf(xfile_handle, "%f;\n", NODES[NETWORK_SIZE-1]->get_w_0(X));
         fprintf(yfile_handle, "%f;\n", NODES[NETWORK_SIZE-1]->get_w_0(Y));
     }
+    fclose(msefile_handle);
     fclose(xfile_handle);
     fclose(yfile_handle);
+    
 }

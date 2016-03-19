@@ -16,6 +16,9 @@
 
 #define USE_RECURSIVE_LMS
 
+#ifdef USE_RECURSIVE_LMS
+#define RECURSIVE_HIST 5
+#endif
 //extern Node* NODES[NETWORK_SIZE]; //global network list
 class Simulator;
 
@@ -137,6 +140,9 @@ public:
 	float get_power(void);
 	void  set_power(float pwr);
 	
+    //MSE estimate
+    float get_error_est(void);
+    
 	//For motion:
 	//Given arena boundaries, update position.
 	void update_position(float arena_x, float arena_y);
@@ -153,12 +159,15 @@ private:
 	float w_jk[NETWORK_SIZE][2]; //weight (position estimate)
 	float nc_w_jk[NETWORK_SIZE][2];
 	float mu_j[NETWORK_SIZE];
+    float e_jk[NETWORK_SIZE]; //errors
 
     //Recursive estimators
 #ifdef USE_RECURSIVE_LMS
-    float e_jk[NETWORK_SIZE];
-	float y_jk[NETWORK_SIZE][2];
-	float wf_jk[NETWORK_SIZE][2];
+    float ef_jk[NETWORK_SIZE];
+	float y_jk[NETWORK_SIZE][NETWORK_SIZE][RECURSIVE_HIST];
+	float wf_jk[NETWORK_SIZE][RECURSIVE_HIST];
+    float pf_jk[NETWORK_SIZE][RECURSIVE_HIST];
+
 #endif
 	//true position
 	coord w_0;
