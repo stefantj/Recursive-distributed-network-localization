@@ -14,7 +14,7 @@
 #include "Globals.h" //contains system parameters
 #include "coord.h" //contains coord class
 
-//#define USE_RECURSIVE_LMS
+#define USE_RECURSIVE_LMS
 
 #ifdef USE_RECURSIVE_LMS
 #define RECURSIVE_HIST 15

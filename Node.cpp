@@ -411,7 +411,7 @@ void Node::update_position(float arena_x, float arena_y)
     float mag = 0;
     float mass = 10; // "mass" in f = m*a
     coord force = {}; //"force" from potential field
-
+    coord attraction_force = {};
 
     
     for(int l = 1; l < NETWORK_SIZE; l++)
@@ -425,17 +425,22 @@ void Node::update_position(float arena_x, float arena_y)
             }
         }
     }
+    
     float F_tot = force[X]*force[X] + force[Y]+force[Y];
     float force_mult = 2*dt/(mass*2);
     if(F_tot > force_mult){
         coord_scale((force_mult)/F_tot, force);
     }
 
+    
+    
     //force points to center:
-    force[X] = Sim.getArenaWidth()/2;
-    force[Y] = Sim.getArenaHeight()/2;
-    coord_diff(w_0, force, force);
-    coord_scale(-5*sqrtf(coord_mult(force, force)), force);
+    attraction_force[X] = Sim.getArenaWidth()/2;
+    attraction_force[Y] = Sim.getArenaHeight()/2;
+    coord_diff(w_0, attraction_force, attraction_force);
+    coord_scale(-5*sqrtf(coord_mult(attraction_force, attraction_force)), attraction_force);
+    
+    coord_add(attraction_force, force, force);
     
     
     // Move - bounce if hits wall
